@@ -1,0 +1,47 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: order-consumer-service
+  kafka:
+    # Local dev: localhost:29092 (EXTERNAL listener). Docker: KAFKA_BOOTSTRAP_SERVERS=kafka:9092.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      # All instances with the same group id share the partitions of the topic.
+      group-id: ${CONSUMER_GROUP_ID:order-processing-group}
+      # When the group has NO committed offset yet (first start), begin from the oldest message
+      # instead of only new ones - so orders published while we were never-started aren't missed.
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # ErrorHandlingDeserializer wraps the real JsonDeserializer. If a message is not valid JSON,
+      # it catches the error instead of crashing the poll loop, and the error handler sends the
+      # record to the dead-letter topic.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        # Ignore any "__TypeId__" header and always deserialize into OUR class.
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.example.orderconsumer.event.OrderEvent
+        # Packages the JsonDeserializer may instantiate (security: never use "*" in production).
+        spring.json.trusted.packages: com.example.orderconsumer.event
+    # Used by the dead-letter publisher (see KafkaConsumerConfig).
+    producer:
+      acks: all
+
+app:
+  kafka:
+    topic: ${ORDER_TOPIC:order-events}
+    # Must match the producer's partition count (used for the dead-letter topic).
+    partitions: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.example: INFO
+    org.apache.kafka: WARN
