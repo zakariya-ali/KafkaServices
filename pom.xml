@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Aggregator POM - convenience only.
+    It lets IntelliJ (and `mvn verify` from the root) see both services at once.
+    The services do NOT inherit from this POM; each one is a fully independent
+    Spring Boot project that can be built on its own and in Docker.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>spring-kafka-microservices</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>order-producer-service</module>
+        <module>order-consumer-service</module>
+    </modules>
+</project>
