@@ -3,11 +3,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### Leftovers from the IntelliJ "new project" template ###
-/src/
-/.mvn/
-/.bloop/
-/.metals/
+### Editor tooling caches (VS Code Metals / Bloop) ###
+.bloop/
+.metals/
 
 ### Local environment ###
 .env
