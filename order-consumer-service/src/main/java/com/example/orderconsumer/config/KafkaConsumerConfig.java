@@ -65,7 +65,7 @@ public class KafkaConsumerConfig {
         // Deserialization errors are already non-retryable by default; add our own "bad data" exception.
         errorHandler.addNotRetryableExceptions(InvalidOrderException.class, IllegalArgumentException.class);
         errorHandler.setRetryListeners((record, ex, attempt) ->
-                log.warn("Retry attempt {} for record key={} offset={}: {}",
+                log.warn("Delivery attempt {} failed for record key={} offset={}: {}",
                         attempt, record.key(), record.offset(), ex.getMessage()));
         return errorHandler;
     }
