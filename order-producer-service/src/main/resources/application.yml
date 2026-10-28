@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: order-producer-service
+  kafka:
+    # Local dev (IntelliJ): localhost:29092 = Kafka's EXTERNAL listener published by Docker.
+    # In Docker Compose this is overridden with KAFKA_BOOTSTRAP_SERVERS=kafka:9092 (INTERNAL listener).
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Wait until the leader AND all in-sync replicas have the message.
+      acks: all
+      retries: 3
+      properties:
+        # Plain JSON only - do NOT add the "__TypeId__" header containing our Java class name.
+        # The consumer is a different project and must not depend on our package names.
+        spring.json.add.type.headers: false
+        # The broker de-duplicates retries, so a retry can't write the same record twice.
+        enable.idempotence: true
+        # Fail fast when Kafka is down instead of hanging the HTTP request for 60s+.
+        max.block.ms: 5000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 8000
+
+app:
+  kafka:
+    topic: ${ORDER_TOPIC:order-events}
+    partitions: 3
+    # How long the REST call waits for Kafka's acknowledgement.
+    send-timeout: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.example: INFO
+    # The Kafka client is very chatty at INFO.
+    org.apache.kafka: WARN
