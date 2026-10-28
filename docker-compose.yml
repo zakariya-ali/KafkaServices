@@ -51,6 +51,58 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # Order Producer - REST API on localhost:8081
+  # ---------------------------------------------------------------------------
+  order-producer:
+    build: ./order-producer-service   # built from the Dockerfile, Maven runs inside Docker
+    image: order-producer-service:latest
+    container_name: order-producer
+    ports:
+      - "${PRODUCER_PORT:-8081}:8081"
+    environment:
+      # Inside the Docker network Kafka is reached by its SERVICE NAME, not localhost.
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ORDER_TOPIC: ${ORDER_TOPIC:-order-events}
+    depends_on:
+      kafka:
+        condition: service_healthy   # wait until Kafka's health check passes
+    networks:
+      - kafka-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Order Consumer - no business API; port 8082 exposes /actuator/health
+  # ---------------------------------------------------------------------------
+  order-consumer:
+    build: ./order-consumer-service
+    image: order-consumer-service:latest
+    container_name: order-consumer
+    ports:
+      - "${CONSUMER_PORT:-8082}:8082"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ORDER_TOPIC: ${ORDER_TOPIC:-order-events}
+      CONSUMER_GROUP_ID: ${CONSUMER_GROUP_ID:-order-processing-group}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - kafka-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
 volumes:
   # Named volume: survives `docker compose down`; removed only by `docker compose down -v`.
   kafka-data:
